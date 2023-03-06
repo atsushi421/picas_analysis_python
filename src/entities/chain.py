@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from .callback import Callback
 
 
@@ -7,7 +7,7 @@ class Chain:
         self.type: str = "p"
         self.num_callbacks: int = 0
         self.id: int = id
-        self.t_callback: List[Callback] = []
+        self.t_callback: Optional[Callback] = None
         self.r_callbacks: List[Callback] = []
         self.C: int = 0
         self.T: int = 0
@@ -18,16 +18,16 @@ class Chain:
 
     def add_callback(self, callback: Callback) -> None:
         if callback.type == "timer":
-            self.t_callback.append(callback)
+            self.t_callback = callback
             self.T = callback.T
         else:
             self.r_callbacks.append(callback)
 
-        self.num_callbacks = len(self.t_callback) + len(self.r_callbacks)
+        self.num_callbacks = 1 if self.t_callback else 0 + len(self.r_callbacks)
         self.C += callback.C
 
-        for c in self.t_callback:  # FIXME
-            c.chain_c = self.C
+        if self.t_callback:
+            self.t_callback.chain_c = self.C
 
         for c in self.r_callbacks:  # FIXME
             c.chain_c = self.C
