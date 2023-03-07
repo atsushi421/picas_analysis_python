@@ -101,7 +101,7 @@ class ResponseTime:
                             and cb.chain_id != t_chain
                             and cb.cpu_id == t_cpu
                         ) or (not t_chain_cpu and cb.cpu_id == t_cpu):
-                            timer_prio, timer_P, timer_cpu = self.find_timer_callback(
+                            timer_prio, timer_P, timer_cpu = self.find_timer_cb(
                                 executors, cb.chain_id
                             )
                             if cb.chain_on_cpu:
@@ -154,9 +154,7 @@ class ResponseTime:
         return self._chains, chain_latency
 
     @staticmethod
-    def find_timer_callback(
-        executors: List[Executor], chain_id: int
-    ) -> Tuple[int, int, int]:
+    def find_timer_cb(executors: List[Executor], chain_id: int) -> Tuple[int, int, int]:
         for exe in executors:
             for cb in exe.callbacks:
                 if cb.chain_id == chain_id and cb.type == "timer":
