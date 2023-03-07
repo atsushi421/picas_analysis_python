@@ -6,7 +6,7 @@
 from typing import List
 import pandas as pd
 
-from src import Callback, Executor, Chain, CPU, response_time_callbacks
+from src import Callback, Executor, Chain, CPU, ResponseTime
 
 
 data = pd.DataFrame(
@@ -157,7 +157,8 @@ cpus[3].assign_executor(executors[12])
 cpus[3].assign_executor(executors[9])
 
 # Compute response time of callbacks
-_chains, latency = response_time_callbacks(chains, cpus)
+response_time = ResponseTime(chains, cpus)
+_chains, latency = response_time.response_time_callbacks()
 
 # Output
 for _c, l in zip(_chains, latency):
