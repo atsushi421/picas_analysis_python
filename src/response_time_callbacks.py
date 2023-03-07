@@ -39,91 +39,88 @@ def response_time_callbacks(
                     s
                 ]
 
-        executors.sort(key=lambda x: x.id)
-        callbacks.sort(key=lambda x: x.id)
+    executors.sort(key=lambda x: x.id)
+    callbacks.sort(key=lambda x: x.id)
 
-        # compute the WCRT of individual callbacks
-        for i in range(len(callbacks)):
-            flag = True
+    # compute the WCRT of individual callbacks
+    for i in range(len(callbacks)):
+        flag = True
 
-            # cb id
-            t_id = callbacks[i].id
+        # cb id
+        t_id = callbacks[i].id
 
-            # check segment task
-            segment_flag = callbacks[i].segment_flag
+        # check segment task
+        segment_flag = callbacks[i].segment_flag
 
-            # executor of target callback
-            t_exe = callbacks[i].executor
+        # executor of target callback
+        t_exe = callbacks[i].executor
 
-            # priority of target callback
-            t_prio = callbacks[i].priority
+        # priority of target callback
+        t_prio = callbacks[i].priority
 
-            # chain of target callback
-            t_chain = callbacks[i].chain_id
+        # chain of target callback
+        t_chain = callbacks[i].chain_id
 
-            # chain on cpu
-            t_chain_cpu = callbacks[i].chain_on_cpu
+        # chain on cpu
+        t_chain_cpu = callbacks[i].chain_on_cpu
 
-            # cpu
-            t_cpu = callbacks[i].cpu
+        # cpu
+        t_cpu = callbacks[i].cpu
 
-            # blocking time by lower priority tasks within executor
-            B = 0
-            for c in executors[t_exe].callbacks:
-                cb = c
-                if cb.chain_id != t_chain and cb.priority < t_prio:
-                    if cb.C > B:
-                        B = cb.C
+        # blocking time by lower priority tasks within executor
+        B = 0
+        for c in executors[t_exe].callbacks:
+            cb = c
+            if cb.chain_id != t_chain and cb.priority < t_prio:
+                if cb.C > B:
+                    B = cb.C
 
-            # initial R
+        # initial R
+        if segment_flag:
+            R = callbacks[i].segment_C + B
+        else:
+            R = callbacks[i].C + B
+
+        R_prev = R
+        while flag:
+            W = 0
+            for cb in callbacks:
+                # for j in range(len(callbacks)):
+                # only consider callback on higher- or same priority executor
+                if (
+                    cb.id != t_id
+                    and executors[t_exe].priority <= executors[cb.executor].priority
+                ):
+                    # check current chain is on a single cpu
+                    if (t_chain_cpu and cb.chain_id != t_chain and cb.cpu == t_cpu) or (
+                        not t_chain_cpu and cb.cpu == t_cpu
+                    ):
+                        timer_prio, timer_P, timer_cpu = find_timer_callback(
+                            executors, cb.chain_id
+                        )
+                        if cb.chain_on_cpu:
+                            P = max(cb.chain_c, timer_P)
+                        else:
+                            P = timer_P
+
+                        if (
+                            executors[t_exe].priority < executors[cb.executor].priority
+                        ) or (t_prio < cb.priority):
+                            if timer_prio >= t_prio or timer_cpu != t_cpu:
+                                W += math.ceil(R / P) * cb.C
+                            else:
+                                W += cb.C
+
             if segment_flag:
-                R = callbacks[i].segment_C + B
+                R = W + callbacks[i].segment_C + B
             else:
-                R = callbacks[i].C + B
+                R = W + callbacks[i].C + B
+
+            if R <= R_prev:
+                callbacks[i].wcrt = R
+                break
 
             R_prev = R
-            while flag:
-                W = 0
-                for j in range(len(callbacks)):
-                    # only consider callback on higher- or same priority executor
-                    if (
-                        callbacks[j].id != t_id
-                        and executors[t_exe].priority
-                        <= executors[callbacks[j].executor].priority
-                    ):
-                        # check current chain is on a single cpu
-                        if (
-                            t_chain_cpu
-                            and callbacks[j].chain_id != t_chain
-                            and callbacks[j].cpu == t_cpu
-                        ) or (not t_chain_cpu and callbacks[j].cpu == t_cpu):
-                            timer_prio, timer_P, timer_cpu = find_timer_callback(
-                                executors, callbacks[j].chain_id
-                            )
-                            if callbacks[j].chain_on_cpu:
-                                P = max(callbacks[j].chain_c, timer_P)
-                            else:
-                                P = timer_P
-
-                            if (
-                                executors[t_exe].priority
-                                < executors[callbacks[j].executor].priority
-                            ) or (t_prio < callbacks[j].priority):
-                                if timer_prio >= t_prio or timer_cpu != t_cpu:
-                                    W += math.ceil(R / P) * callbacks[j].C
-                                else:
-                                    W += callbacks[j].C
-
-                if segment_flag:
-                    R = W + callbacks[i].segment_C + B
-                else:
-                    R = W + callbacks[i].C + B
-
-                if R <= R_prev:
-                    callbacks[i].wcrt = R
-                    break
-
-                R_prev = R
 
     # reshape callbacks to chains where they belong to
     for c in callbacks:

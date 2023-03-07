@@ -14,7 +14,7 @@ class Executor:
 
     def add_callbacks(self, tasks: List[Callback]) -> None:
         for t in tasks:
-            self.util += t.C / t.T
+            self.util += t.C / t.chain_T
             t.executor = self.id
             self.callbacks.append(t)
 
