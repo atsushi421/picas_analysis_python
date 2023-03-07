@@ -9,49 +9,62 @@ import pandas as pd
 from src import Callback, Executor, Chain, CPU, ResponseTime
 
 
-data = pd.DataFrame(
+CB_PROPERTIES = pd.DataFrame(
     data=[
-        [80, 2.3, 80, 0],
-        [0, 16.1, 0, 0],
-        [80, 2.3, 80, 1],
-        [0, 2.2, 0, 1],
-        [0, 18.4, 0, 1],
-        [0, 9.1, 0, 1],
-        [100, 23.1, 100, 2],
-        [0, 7.9, 0, 2],
-        [0, 14.2, 0, 2],
-        [0, 17.9, 0, 2],
-        [100, 20.6, 100, 3],
-        [0, 17.9, 0, 3],
-        [0, 6.6, 0, 3],
-        [160, 1.7, 160, 4],
-        [0, 11, 0, 4],
-        [0, 6.6, 0, 4],
-        [0, 7.9, 0, 4],
-        [1000, 1.7, 1000, 5],
-        [0, 195.9, 0, 5],
-        [120, 33.2, 120, 6],
-        [0, 2.2, 0, 6],
-        [120, 33.2, 120, 7],
-        [0, 6.6, 0, 7],
-        [120, 33.2, 120, 8],
-        [0, 6.6, 0, 8],
-        [120, 33.2, 120, 9],
-        [0, 1.7, 0, 9],
-        [120, 33.2, 120, 10],
-        [0, 2.2, 0, 10],
-        [120, 33.2, 120, 11],
-        [0, 2.2, 0, 11],
+        ### -- RT chain --
+        # chain 0
+        [80, 2.3, 0],
+        [0, 16.1, 0],
+        # chain 1
+        [80, 2.3, 1],
+        [0, 2.2, 1],
+        [0, 18.4, 1],
+        [0, 9.1, 1],
+        # chain 2
+        [100, 23.1, 2],
+        [0, 7.9, 2],
+        [0, 14.2, 2],
+        [0, 17.9, 2],
+        # chain 3
+        [100, 20.6, 3],
+        [0, 17.9, 3],
+        [0, 6.6, 3],
+        # chain 4
+        [160, 1.7, 4],
+        [0, 11, 4],
+        [0, 6.6, 4],
+        [0, 7.9, 4],
+        # chain 5
+        [1000, 1.7, 5],
+        [0, 195.9, 5],
+        ### -- BE chain --
+        # chain 6
+        [120, 33.2, 6],
+        [0, 2.2, 6],
+        # chain 7
+        [120, 33.2, 7],
+        [0, 6.6, 7],
+        # chain 8
+        [120, 33.2, 8],
+        [0, 6.6, 8],
+        # chain 9
+        [120, 33.2, 9],
+        [0, 1.7, 9],
+        # chain 10
+        [120, 33.2, 10],
+        [0, 2.2, 10],
+        # chain 11
+        [120, 33.2, 11],
+        [0, 2.2, 11],
     ],
-    columns=["period", "execution_time", "deadline", "chain_id"],
+    columns=["period", "execution_time", "chain_id"],
 )
 
-num_executors = 18
-num_cpus = 4
-num_chains = int(data["chain_id"].max()) + 1
-num_cbs = len(data)
+NUM_EXECUTOERS = 18
+NUM_CPUS = 4
 
 # Initialize chains
+num_chains = int(CB_PROPERTIES["chain_id"].max()) + 1
 sem_priority = num_chains
 chains: List[Chain] = []
 for chain_id in range(num_chains):
@@ -60,28 +73,28 @@ for chain_id in range(num_chains):
 
 # Initialize callbacks
 callbacks: List[Callback] = []
-for c_id in range(len(data)):
+for c_id in range(len(CB_PROPERTIES)):
     cb = Callback(
         c_id,
-        data.loc[c_id, "period"],
-        data.loc[c_id, "execution_time"],
-        data.loc[c_id, "chain_id"],
+        CB_PROPERTIES.loc[c_id, "period"],
+        CB_PROPERTIES.loc[c_id, "execution_time"],
+        CB_PROPERTIES.loc[c_id, "chain_id"],
     )
     callbacks.append(cb)
     chains[cb.chain_id].add_callback(cb)
 
 # Initialize executors
-prio = num_executors
+priority = NUM_EXECUTOERS
 executors: List[Executor] = []
-for exe_id in range(num_executors):
-    executors.append(Executor(exe_id, prio))
-    prio -= 1
+for exe_id in range(NUM_EXECUTOERS):
+    executors.append(Executor(exe_id, priority))
+    priority -= 1
 
 # Initialize cpus
-cpus: List[CPU] = [CPU(cpu_id) for cpu_id in range(num_cpus)]
+cpus: List[CPU] = [CPU(cpu_id) for cpu_id in range(NUM_CPUS)]
 
 # Assign callback priority
-callback_priority = num_cbs
+callback_priority = len(CB_PROPERTIES)
 for chain in chains:
     for r_cb in reversed(chain.regular_cbs):
         r_cb.priority = callback_priority
@@ -156,4 +169,6 @@ _chains, latency = response_time.response_time_callbacks()
 
 # Output
 for _c, l in zip(_chains, latency):
-    print(f"[chain {_c.id}] latency: {l}")
+    print(
+        f"[chain {_c.id} = cbs {[_c.timer_cb.id]+ [rcb.id for rcb in _c.regular_cbs]}] latency: {l}"
+    )
