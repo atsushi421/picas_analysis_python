@@ -6,37 +6,24 @@ class Callback:
         self,
         id: int,
         period: int,
-        execution: int,
+        execution_time: int,
         chain_id: int,
-        cpu_id: Optional[int] = None,
-        executor_id: Optional[int] = None,
     ) -> None:
         self.id: int = id
-        self.type: str
-        self.T: int = period
-        self.C: int = execution
-        if period != 0:
-            self.D: int = period
-            self.type = "timer"
-        else:
-            self.type = "regular"
+        self.cpu_id: Optional[int] = None
+        self.executor_id: int = 0
 
-        self.executor: int = 0
+        self.type: str = "regular" if period == 0 else "timer"
+        self.T: int = period
+        self.C: int = execution_time
         self.priority: int = 0
-        if cpu_id is not None:
-            self.cpu = cpu_id
-        if executor_id is not None:
-            self.executor = executor_id
 
         self.chain_id: int = chain_id
         self.chain_T: int
-        self.chain_c: int = 0
-
-        self.wcrt: int = 0
-        # self.job_index: int = 1
-        # self.jobs = []
+        self.chain_C: int = 0
 
         # For analysis purpose
+        self.wcrt: int = 0
         self.segment_flag: bool = False
         self.segment_C: int = 0
         self.chain_on_cpu: bool = False

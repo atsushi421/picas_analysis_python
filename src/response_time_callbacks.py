@@ -53,7 +53,7 @@ def response_time_callbacks(
         segment_flag = callbacks[i].segment_flag
 
         # executor of target callback
-        t_exe = callbacks[i].executor
+        t_exe = callbacks[i].executor_id
 
         # priority of target callback
         t_prio = callbacks[i].priority
@@ -65,7 +65,7 @@ def response_time_callbacks(
         t_chain_cpu = callbacks[i].chain_on_cpu
 
         # cpu
-        t_cpu = callbacks[i].cpu
+        t_cpu = callbacks[i].cpu_id
 
         # blocking time by lower priority tasks within executor
         B = 0
@@ -89,22 +89,23 @@ def response_time_callbacks(
                 # only consider callback on higher- or same priority executor
                 if (
                     cb.id != t_id
-                    and executors[t_exe].priority <= executors[cb.executor].priority
+                    and executors[t_exe].priority <= executors[cb.executor_id].priority
                 ):
                     # check current chain is on a single cpu
-                    if (t_chain_cpu and cb.chain_id != t_chain and cb.cpu == t_cpu) or (
-                        not t_chain_cpu and cb.cpu == t_cpu
-                    ):
+                    if (
+                        t_chain_cpu and cb.chain_id != t_chain and cb.cpu_id == t_cpu
+                    ) or (not t_chain_cpu and cb.cpu_id == t_cpu):
                         timer_prio, timer_P, timer_cpu = find_timer_callback(
                             executors, cb.chain_id
                         )
                         if cb.chain_on_cpu:
-                            P = max(cb.chain_c, timer_P)
+                            P = max(cb.chain_C, timer_P)
                         else:
                             P = timer_P
 
                         if (
-                            executors[t_exe].priority < executors[cb.executor].priority
+                            executors[t_exe].priority
+                            < executors[cb.executor_id].priority
                         ) or (t_prio < cb.priority):
                             if timer_prio >= t_prio or timer_cpu != t_cpu:
                                 W += math.ceil(R / P) * cb.C
@@ -156,7 +157,7 @@ def find_timer_callback(
             if cb.chain_id == chain_id and cb.type == "timer":
                 timer_prio = cb.priority
                 timer_P = cb.T
-                timer_cpu = cb.cpu
+                timer_cpu = cb.cpu_id
 
                 return timer_prio, timer_P, timer_cpu
 

@@ -24,7 +24,7 @@ class CPU:
     def assign_executor(self, exe: Executor) -> None:
         exe.cpu = self.id
         for c in exe.callbacks:
-            c.cpu = self.id
+            c.cpu_id = self.id
 
         self.executors.append(exe)
         self.executor_ids.append(exe.id)

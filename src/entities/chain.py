@@ -27,7 +27,7 @@ class Chain:
         self.C += callback.C
 
         if self.t_callback:
-            self.t_callback.chain_c = self.C
+            self.t_callback.chain_C = self.C
 
         for c in self.r_callbacks:  # FIXME
-            c.chain_c = self.C
+            c.chain_C = self.C

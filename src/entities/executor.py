@@ -15,12 +15,12 @@ class Executor:
     def add_callbacks(self, tasks: List[Callback]) -> None:
         for t in tasks:
             self.util += t.C / t.chain_T
-            t.executor = self.id
+            t.executor_id = self.id
             self.callbacks.append(t)
 
     def assign(self, callback: Callback) -> None:
         self.callbacks.append(callback)
-        callback.executor = self.id
+        callback.executor_id = self.id
         callback.priority = self.priority
         if self.type:
             print("The executor type is already defined.")
