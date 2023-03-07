@@ -42,8 +42,6 @@ class ResponseTime:
 
         # compute the WCRT of individual callbacks
         for target_cb in callbacks:
-            flag = True
-
             # blocking time by lower priority tasks within executor
             B = 0
             for cb in executors[target_cb.executor_id].callbacks:
@@ -61,7 +59,7 @@ class ResponseTime:
                 R = target_cb.C + B
 
             R_prev = R
-            while flag:
+            while True:
                 W = 0
                 for cb in callbacks:
 
