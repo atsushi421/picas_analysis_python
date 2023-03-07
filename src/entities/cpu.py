@@ -28,7 +28,7 @@ class CPU:
 
         self.executors.append(exe)
         self.executor_ids.append(exe.id)
-        self.utilization += exe.util
+        self.utilization += exe.U
 
     # For analysis use
     def find_low_sem_prio_chain_cpu(self, chains: List[Chain]) -> None:
