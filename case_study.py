@@ -85,13 +85,13 @@ cpus: List[CPU] = [CPU(cpu_id) for cpu_id in range(num_cpus)]
 callback_prio = num_tasks
 callbacks_sorted = []
 for ch in chains:
-    for r_cb in reversed(ch.r_callbacks):
+    for r_cb in reversed(ch.regular_cbs):
         r_cb.priority = callback_prio
         callback_prio -= 1
         r_cb.chain_T = ch.T
         callbacks_sorted.append(r_cb)
 
-    t_callback = ch.t_callback
+    t_callback = ch.timer_cb
     if not t_callback:
         raise NotImplementedError("BUG")
     t_callback.priority = callback_prio

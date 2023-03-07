@@ -31,8 +31,8 @@ def response_time_callbacks(
         # set segment callbacks
         for s in range(len(chains)):
             # remove callbacks of chains, it'll fiil at the end of analysis
-            chains[s].t_callback = None
-            chains[s].r_callbacks = []
+            chains[s].timer_cb = None
+            chains[s].regular_cbs = []
             if chain_segment_exe_time[s] != 0:
                 callbacks[chain_segment_task_idx[s]].segment_flag = True
                 callbacks[chain_segment_task_idx[s]].segment_C = chain_segment_exe_time[
@@ -127,23 +127,23 @@ def response_time_callbacks(
     for c in callbacks:
         # for c in range(len(callbacks)):
         if c.type == "timer":
-            chains[c.chain_id].t_callback = c
+            chains[c.chain_id].timer_cb = c
         else:
-            chains[c.chain_id].r_callbacks.append(c)
+            chains[c.chain_id].regular_cbs.append(c)
 
     # Theorem 1
     # capture WCRT with considering time delay by prior chain instance
     chain_latency: List[int] = [0] * len(chains)
     for i in range(len(chains)):
         chain = chains[i]
-        if chain.t_callback and chain.t_callback.segment_flag:
-            chain_latency[i] += chain.t_callback.wcrt
-        for rcb in chain.r_callbacks:
+        if chain.timer_cb and chain.timer_cb.segment_flag:
+            chain_latency[i] += chain.timer_cb.wcrt
+        for rcb in chain.regular_cbs:
             if rcb.segment_flag:
                 chain_latency[i] += rcb.wcrt
 
-        if chain.t_callback and chain_latency[i] > chain.t_callback.T:
-            chain_latency[i] += chain.t_callback.T
+        if chain.timer_cb and chain_latency[i] > chain.timer_cb.T:
+            chain_latency[i] += chain.timer_cb.T
 
     return chains, chain_latency
 
