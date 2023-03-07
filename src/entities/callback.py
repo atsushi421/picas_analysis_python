@@ -10,7 +10,7 @@ class Callback:
         chain_id: int,
     ) -> None:
         self.id: int = id
-        self.cpu_id: Optional[int] = None
+        self.cpu_id: int = 0
         self.executor_id: int = 0
 
         self.type: str = "regular" if period == 0 else "timer"
