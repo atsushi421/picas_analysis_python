@@ -118,13 +118,12 @@ for i in same_cpu_chain_cb_id:
 
 # Allocate callbacks to executors manually
 # RT chains
-executors[0].add_callbacks(callbacks[0:2])
-executors[0].add_callbacks([callbacks[2]])
-executors[1].add_callbacks(callbacks[3:5])
-executors[2].add_callbacks(callbacks[6:9])
-executors[3].add_callbacks(callbacks[10:12])
-executors[4].add_callbacks(callbacks[13:16])
-executors[5].add_callbacks(callbacks[17:18])
+executors[0].add_callbacks(callbacks[0:3])
+executors[1].add_callbacks(callbacks[3:6])
+executors[2].add_callbacks(callbacks[6:10])
+executors[3].add_callbacks(callbacks[10:13])
+executors[4].add_callbacks(callbacks[13:17])
+executors[5].add_callbacks(callbacks[17:19])
 
 # BE chains
 executors[6].add_callbacks([callbacks[19]])
