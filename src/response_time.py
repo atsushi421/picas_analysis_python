@@ -10,37 +10,35 @@ class ResponseTime:
         self._cpus = cpus
 
     def response_time_callbacks(self) -> Tuple[List[Chain], List[int]]:
-        # reshape callbacks and distinguish segment tasks for each chain/CPU
         callbacks: List[Callback] = []
         executors: List[Executor] = []
-        idx = 0
 
+        # reshape callbacks and distinguish segment tasks for each chain/CPU
+        cb_id = 0
         for cpu in self._cpus:
-            chain_segment_priority = [sys.maxsize] * len(self._chains)
-            chain_segment_task_idx = [0] * len(self._chains)
-            chain_segment_exe_time = [0] * len(self._chains)
-            for e in cpu.executors:
-                for c in e.callbacks:
-                    cur_cb = c
-                    cur_chain = cur_cb.chain_id
-                    if cur_cb.priority < chain_segment_priority[cur_chain]:
-                        chain_segment_priority[cur_chain] = cur_cb.priority
-                        chain_segment_task_idx[cur_chain] = idx
-                    chain_segment_exe_time[cur_chain] += cur_cb.C
-                    callbacks.append(cur_cb)
-                    idx += 1
-                executors.append(e)
+            chain_seg_p = [sys.maxsize] * len(self._chains)
+            chain_seg_lowest_p_cb_id = [0] * len(self._chains)
+            chain_seg_C = [0] * len(self._chains)
+            for exe in cpu.executors:
+                for cb in exe.callbacks:
+                    cur_chain_id = cb.chain_id
+                    if cb.priority < chain_seg_p[cur_chain_id]:
+                        # Update segment priority
+                        chain_seg_p[cur_chain_id] = cb.priority
+                        chain_seg_lowest_p_cb_id[cur_chain_id] = cb_id
+                    chain_seg_C[cur_chain_id] += cb.C
+                    cb_id += 1
+                    callbacks.append(cb)
+                executors.append(exe)
 
             # set segment callbacks
             for s in range(len(self._chains)):
-                # remove callbacks of self._chains, it'll fiil at the end of analysis
+                # remove callbacks of chains, it'll fiil at the end of analysis
                 self._chains[s].timer_cb = None
                 self._chains[s].regular_cbs = []
-                if chain_segment_exe_time[s] != 0:
-                    callbacks[chain_segment_task_idx[s]].segment_flag = True
-                    callbacks[
-                        chain_segment_task_idx[s]
-                    ].segment_C = chain_segment_exe_time[s]
+                if chain_seg_C[s] != 0:
+                    callbacks[chain_seg_lowest_p_cb_id[s]].segment_flag = True
+                    callbacks[chain_seg_lowest_p_cb_id[s]].segment_C = chain_seg_C[s]
 
         executors.sort(key=lambda x: x.id)
         callbacks.sort(key=lambda x: x.id)
@@ -130,12 +128,12 @@ class ResponseTime:
                 R_prev = R
 
         # reshape callbacks to self._chains where they belong to
-        for c in callbacks:
+        for cb in callbacks:
             # for c in range(len(callbacks)):
-            if c.type == "timer":
-                self._chains[c.chain_id].timer_cb = c
+            if cb.type == "timer":
+                self._chains[cb.chain_id].timer_cb = cb
             else:
-                self._chains[c.chain_id].regular_cbs.append(c)
+                self._chains[cb.chain_id].regular_cbs.append(cb)
 
         # Theorem 1
         # capture WCRT with considering time delay by prior chain instance
