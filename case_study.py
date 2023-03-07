@@ -11,103 +11,97 @@ from src import Callback, Executor, Chain, CPU, ResponseTime
 
 data = pd.DataFrame(
     data=[
+        [80, 2.3, 80, 0],
+        [0, 16.1, 0, 0],
         [80, 2.3, 80, 1],
-        [0, 16.1, 0, 1],
-        [80, 2.3, 80, 2],
-        [0, 2.2, 0, 2],
-        [0, 18.4, 0, 2],
-        [0, 9.1, 0, 2],
-        [100, 23.1, 100, 3],
-        [0, 7.9, 0, 3],
-        [0, 14.2, 0, 3],
+        [0, 2.2, 0, 1],
+        [0, 18.4, 0, 1],
+        [0, 9.1, 0, 1],
+        [100, 23.1, 100, 2],
+        [0, 7.9, 0, 2],
+        [0, 14.2, 0, 2],
+        [0, 17.9, 0, 2],
+        [100, 20.6, 100, 3],
         [0, 17.9, 0, 3],
-        [100, 20.6, 100, 4],
-        [0, 17.9, 0, 4],
+        [0, 6.6, 0, 3],
+        [160, 1.7, 160, 4],
+        [0, 11, 0, 4],
         [0, 6.6, 0, 4],
-        [160, 1.7, 160, 5],
-        [0, 11, 0, 5],
-        [0, 6.6, 0, 5],
-        [0, 7.9, 0, 5],
-        [1000, 1.7, 1000, 6],
-        [0, 195.9, 0, 6],
+        [0, 7.9, 0, 4],
+        [1000, 1.7, 1000, 5],
+        [0, 195.9, 0, 5],
+        [120, 33.2, 120, 6],
+        [0, 2.2, 0, 6],
         [120, 33.2, 120, 7],
-        [0, 2.2, 0, 7],
+        [0, 6.6, 0, 7],
         [120, 33.2, 120, 8],
         [0, 6.6, 0, 8],
         [120, 33.2, 120, 9],
-        [0, 6.6, 0, 9],
+        [0, 1.7, 0, 9],
         [120, 33.2, 120, 10],
-        [0, 1.7, 0, 10],
+        [0, 2.2, 0, 10],
         [120, 33.2, 120, 11],
         [0, 2.2, 0, 11],
-        [120, 33.2, 120, 12],
-        [0, 2.2, 0, 12],
     ],
-    columns=["period", "execution_time", "deadline", "chain"],
+    columns=["period", "execution_time", "deadline", "chain_id"],
 )
 
 num_executors = 18
 num_cpus = 4
-num_chains = int(data["chain"].max())
-num_tasks = len(data)
+num_chains = int(data["chain_id"].max()) + 1
+num_cbs = len(data)
 
-# Initialize callbacks & chains
+# Initialize chains
+sem_priority = num_chains
 chains: List[Chain] = []
+for chain_id in range(num_chains):
+    chains.append(Chain(chain_id, sem_priority))
+    sem_priority -= 1
+
+# Initialize callbacks
 callbacks: List[Callback] = []
-chain_idx = 0
-sem_prio = num_chains
 for c_id in range(len(data)):
     cb = Callback(
         c_id,
         data.loc[c_id, "period"],
         data.loc[c_id, "execution_time"],
-        data.loc[c_id, "chain"] - 1,
+        data.loc[c_id, "chain_id"],
     )
     callbacks.append(cb)
-    if len(chains) < cb.chain_id + 1:
-        chain_idx += 1
-        chain = Chain(chain_idx, sem_prio)
-        chains.append(chain)
-        sem_prio -= 1
     chains[cb.chain_id].add_callback(cb)
 
 # Initialize executors
 prio = num_executors
 executors: List[Executor] = []
-for e in range(num_executors):
-    executors.append(Executor(e, prio))
+for exe_id in range(num_executors):
+    executors.append(Executor(exe_id, prio))
     prio -= 1
 
 # Initialize cpus
 cpus: List[CPU] = [CPU(cpu_id) for cpu_id in range(num_cpus)]
 
 # Assign callback priority
-callback_prio = num_tasks
-callbacks_sorted = []
-for ch in chains:
-    for r_cb in reversed(ch.regular_cbs):
-        r_cb.priority = callback_prio
-        callback_prio -= 1
-        r_cb.chain_T = ch.T
-        callbacks_sorted.append(r_cb)
+callback_priority = num_cbs
+for chain in chains:
+    for r_cb in reversed(chain.regular_cbs):
+        r_cb.priority = callback_priority
+        callback_priority -= 1
+        r_cb.chain_T = chain.T
 
-    t_callback = ch.timer_cb
-    if not t_callback:
+    if not chain.timer_cb:
         raise NotImplementedError("BUG")
-    t_callback.priority = callback_prio
-    callback_prio -= 1
-    t_callback.chain_T = ch.T
-    callbacks_sorted.append(t_callback)
+    chain.timer_cb.priority = callback_priority
+    callback_priority -= 1
+    chain.timer_cb.chain_T = chain.T
 
-callbacks = sorted(callbacks_sorted, key=lambda x: x.id)
 callbacks[0].priority = callbacks[
     2
 ].priority  # Since callback(1) and callback(3) are the same, i.e., a mutual callback
 
 # If all callbacks of a chain exist on the same CPU core, set "chain_on_cpu" True
-indices = [1, 2, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]  # +1 value
-for i in indices:
-    callbacks[i - 1].chain_on_cpu = True
+same_cpu_chain_cb_id = [0, 1, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+for i in same_cpu_chain_cb_id:
+    callbacks[i].chain_on_cpu = True
 
 # Allocate callbacks to executors manually
 # RT chains
