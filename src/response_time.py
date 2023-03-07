@@ -157,14 +157,9 @@ class ResponseTime:
     def find_timer_callback(
         executors: List[Executor], chain_id: int
     ) -> Tuple[int, int, int]:
-        for e in range(len(executors)):
-            for c in range(len(executors[e].callbacks)):
-                cb = executors[e].callbacks[c]
+        for exe in executors:
+            for cb in exe.callbacks:
                 if cb.chain_id == chain_id and cb.type == "timer":
-                    timer_prio = cb.priority
-                    timer_P = cb.T
-                    timer_cpu = cb.cpu_id
-
-                    return timer_prio, timer_P, timer_cpu
+                    return cb.priority, cb.T, cb.cpu_id
 
         raise NotImplementedError("Bug")
