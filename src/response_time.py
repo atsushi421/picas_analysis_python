@@ -9,7 +9,7 @@ class ResponseTime:
         self._chains = chains
         self._cpus = cpus
 
-    def response_time_callbacks(self) -> Tuple[List[Chain], List[int]]:
+    def response_time_callbacks(self) -> List[int]:
         callbacks: List[Callback] = []
         executors: List[Executor] = []
 
@@ -124,7 +124,7 @@ class ResponseTime:
             if chain.timer_cb and chain_latency[i] > chain.timer_cb.T:
                 chain_latency[i] += chain.timer_cb.T
 
-        return self._chains, chain_latency
+        return chain_latency
 
     @staticmethod
     def find_timer_cb(executors: List[Executor], chain_id: int) -> Tuple[int, int, int]:

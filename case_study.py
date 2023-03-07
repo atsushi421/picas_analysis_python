@@ -164,10 +164,11 @@ cpus[3].assign_executor(executors[9])
 
 # Compute response time of callbacks
 response_time = ResponseTime(chains, cpus)
-_chains, latency = response_time.response_time_callbacks()
+latency = response_time.response_time_callbacks()
 
 # Output
-for _c, l in zip(_chains, latency):
-    print(
-        f"[chain {_c.id} = cbs {[_c.timer_cb.id]+ [rcb.id for rcb in _c.regular_cbs]}] latency: {l}"
-    )
+for chain, l in zip(chains, latency):
+    cbs = [f"t{chain.timer_cb.id}"] if chain.timer_cb else []
+    for rcb in chain.regular_cbs:
+        cbs.append(f"t{rcb.id}")
+    print(f"|Chain {chain.id} = {cbs}| End-to-end latency: {l}")
