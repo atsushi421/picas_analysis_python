@@ -6,7 +6,7 @@ class Callback:
         self,
         id: int,
         period: int,
-        execution_time: int,
+        execution_time: float,
         chain_id: int,
     ) -> None:
         self.id: int = id
@@ -15,15 +15,15 @@ class Callback:
 
         self.type: str = "regular" if period == 0 else "timer"
         self.T: int = period
-        self.C: int = execution_time
+        self.C: float = execution_time
         self.priority: int = 0
 
         self.chain_id: int = chain_id
         self.chain_T: int
-        self.chain_C: int = 0
+        self.chain_C: float = 0
 
         # For analysis purpose
         self.wcrt: int = 0
         self.segment_flag: bool = False
-        self.segment_C: int = 0
+        self.segment_C: float = 0
         self.chain_on_cpu: bool = False

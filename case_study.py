@@ -8,63 +8,23 @@ import pandas as pd
 
 from src import Callback, Executor, Chain, CPU, ResponseTime
 
+import argparse
 
-CB_PROPERTIES = pd.DataFrame(
-    data=[
-        ### -- RT chain --
-        # chain 0
-        [80, 2.3, 0],
-        [0, 16.1, 0],
-        # chain 1
-        [80, 2.3, 1],
-        [0, 2.2, 1],
-        [0, 18.4, 1],
-        [0, 9.1, 1],
-        # chain 2
-        [100, 23.1, 2],
-        [0, 7.9, 2],
-        [0, 14.2, 2],
-        [0, 17.9, 2],
-        # chain 3
-        [100, 20.6, 3],
-        [0, 17.9, 3],
-        [0, 6.6, 3],
-        # chain 4
-        [160, 1.7, 4],
-        [0, 11, 4],
-        [0, 6.6, 4],
-        [0, 7.9, 4],
-        # chain 5
-        [1000, 1.7, 5],
-        [0, 195.9, 5],
-        ### -- BE chain --
-        # chain 6
-        [120, 33.2, 6],
-        [0, 2.2, 6],
-        # chain 7
-        [120, 33.2, 7],
-        [0, 6.6, 7],
-        # chain 8
-        [120, 33.2, 8],
-        [0, 6.6, 8],
-        # chain 9
-        [120, 33.2, 9],
-        [0, 1.7, 9],
-        # chain 10
-        [120, 33.2, 10],
-        [0, 2.2, 10],
-        # chain 11
-        [120, 33.2, 11],
-        [0, 2.2, 11],
-    ],
-    columns=["period", "execution_time", "chain_id"],
-)
+parser = argparse.ArgumentParser()
+parser.add_argument("--input")
 
-NUM_EXECUTOERS = 18
-NUM_CPUS = 4
+args = parser.parse_args()
+
+import yaml
+
+with open(args.input, "r") as f:
+    input_data = yaml.safe_load(f)
+
+NUM_EXECUTOERS = input_data["num_executors"]
+NUM_CPUS = input_data["num_cpus"]
 
 # Initialize chains
-num_chains = int(CB_PROPERTIES["chain_id"].max()) + 1
+num_chains = list(input_data["callbacks"].values())[-1]["chain_id"] + 1
 sem_priority = num_chains
 chains: List[Chain] = []
 for chain_id in range(num_chains):
@@ -73,12 +33,12 @@ for chain_id in range(num_chains):
 
 # Initialize callbacks
 callbacks: List[Callback] = []
-for c_id in range(len(CB_PROPERTIES)):
+for cb_name, cb_dict in input_data["callbacks"].items():
     cb = Callback(
-        c_id,
-        CB_PROPERTIES.loc[c_id, "period"],
-        CB_PROPERTIES.loc[c_id, "execution_time"],
-        CB_PROPERTIES.loc[c_id, "chain_id"],
+        int(cb_name.replace("cb", "")),
+        int(cb_dict["period"]),
+        float(cb_dict["exec"]),
+        int(cb_dict["chain_id"]),
     )
     callbacks.append(cb)
     chains[cb.chain_id].add_callback(cb)
@@ -94,7 +54,7 @@ for exe_id in range(NUM_EXECUTOERS):
 cpus: List[CPU] = [CPU(cpu_id) for cpu_id in range(NUM_CPUS)]
 
 # Assign callback priority
-callback_priority = len(CB_PROPERTIES)
+callback_priority = len(input_data["callbacks"])
 for chain in chains:
     for r_cb in reversed(chain.regular_cbs):
         r_cb.priority = callback_priority
@@ -102,6 +62,7 @@ for chain in chains:
         r_cb.chain_T = chain.T
 
     if not chain.timer_cb:
+        print(chain.id)
         raise NotImplementedError("BUG")
     chain.timer_cb.priority = callback_priority
     callback_priority -= 1
